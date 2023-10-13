@@ -1,0 +1,21 @@
+# hidden files (except git stuff and clang-format)
+.*
+!.git*
+!.clang-format
+
+# tools
+tools/clib
+
+# build artifacts
+*.o
+*.asm
+*.dmp
+*.lyn.event
+*.sym
+
+# copyrighted material
+*.gba
+
+# build and run output
+fe8-hack.*
+hack-*.png

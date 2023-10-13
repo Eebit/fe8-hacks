@@ -1,0 +1,6 @@
+[submodule "tools/ea"]
+	path = tools/ea
+	url = https://github.com/StanHash/EventAssembler.git
+[submodule "tools/fe-pytools"]
+	path = tools/fe-pytools
+	url = https://github.com/StanHash/FE-PyTools.git

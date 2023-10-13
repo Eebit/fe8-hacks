@@ -1,0 +1,12 @@
+#ifndef TITLE_BGM_BY_FLAG_INSTALLED
+#define TITLE_BGM_BY_FLAG_INSTALLED
+
+#ifndef FreeSpace
+#define FreeSpace    0xB2A610
+ORG FreeSpace
+#endif
+
+#include "src/TitleBgmByFlag-Data.lyn.event"
+#include "src/TitleBgmByFlag.lyn.event"
+
+#endif /* TITLE_BGM_BY_FLAG_INSTALLED */

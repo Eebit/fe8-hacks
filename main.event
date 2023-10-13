@@ -1,0 +1,8 @@
+#include "EAstdlib.event"
+#include "Extensions/Hack Installation.txt"
+#include "Extensions/ProcDefinitions.txt"
+
+#define FreeSpace    0xB2A610
+ORG FreeSpace
+
+#include "src/TitleBgmByFlag/TitleBgmByFlag.event"
