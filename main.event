@@ -5,4 +5,5 @@
 #define FreeSpace    0xB2A610
 ORG FreeSpace
 
-#include "src/TitleBgmByFlag/TitleBgmByFlag.event"
+#include "src/FE8ModeSelect/FE8ModeSelect.event"
+//#include "src/TitleBgmByFlag/TitleBgmByFlag.event"
