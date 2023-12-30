@@ -1,0 +1,80 @@
+#ifndef PREP_SCREEN_GUIDE_INSTALLED
+#define PREP_SCREEN_GUIDE_INSTALLED
+
+#ifndef FreeSpace
+#define FreeSpace    0xB2A610
+ORG FreeSpace
+#endif
+
+#include "src/PrepScreenGuide.lyn.event"
+
+// Replace Prep TSA to make room for 6th option (credits to Huichelaar)
+
+Tsa_ExtendedPrepScreen:
+    #incbin "data/Tsa_ExtendedPrepScreen.tsa.lz"
+
+PUSH
+    ORG 0x95E3C
+        POIN Tsa_ExtendedPrepScreen
+    ORG 0x95EB8
+        POIN Tsa_ExtendedPrepScreen
+    ORG 0x9617C
+        POIN Tsa_ExtendedPrepScreen
+
+    // ==================================
+    // MAIN PREP MENU
+    // ==================================
+
+    // Move "Fight!" and "Menu" sprites to make room for 6th option (credits to Huichelaar)
+    ORG 0x96A30
+        SHORT 0x2100    // MOV r1, #0
+        SHORT 0x2220    // MOV r2, #0x20
+
+    ORG 0x96A56
+        SHORT 0x2150    // MOV r1, #0x50
+        SHORT 0x2220    // MOV r2, #0x20
+
+    ORG 0x955A0 // InitPrepScreenMainMenu, 0x08095524
+        SHORT 0x1C28    // MOV r0, r5; r5 = proc
+        SHORT 0x46C0    // NOP to align
+        callHack_r1(PrepScreenGuide_AddExtraEntry|1)
+        // 7 NOPs to clear out leftover instructions
+        SHORT 0x46C0 0x46C0 0x46C0 0x46C0
+        SHORT 0x46C0 0x46C0 0x46C0
+
+    // Add entry help text
+    ORG 0xA18240
+        SHORT Guide_PrepMainMenu_HelpText
+
+    // ==================================
+    // PREP MAP MENU
+    // ==================================
+
+    ORG 0x33696 // PrepScreenProc_StartMapMenu, 0x08033648
+        SHORT 0x1C20 // MOV r0, r4; r4 = proc
+        callHack_r1(PrepScreenGuide_MapMenu_AddExtraEntry|1)
+        SHORT 0x46C0 // NOP
+
+    ORG 0x59E00C // Replaces the part of SALLYCURSOR proc where Merlinus would show up in FE7; nulled out in FE8
+    {
+        #define BMapDispSuspend            0x08030184
+        #define ClosePrepScreenMapMenu     0x0803334C
+        #define BMapDispResume             0x080301B8
+
+        PROC_CALL_ROUTINE(BMapDispSuspend|1)
+        PROC_CALL_ROUTINE(ClosePrepScreenMapMenu|1)
+
+        PROC_CALL_ROUTINE(PrepScreenGuide_StartGuide|1)
+        PROC_YIELD
+
+        PROC_CALL_ROUTINE(BMapDispResume|1)
+
+        PROC_GOTO(62)
+
+        #undef BMapDispSuspend
+        #undef ClosePrepScreenMapMenu
+        #undef BMapDispResume
+    }
+POP
+
+#endif /* PREP_SCREEN_GUIDE_INSTALLED */
