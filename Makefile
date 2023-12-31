@@ -29,6 +29,12 @@ ifneq (,$(TOOLCHAIN))
   export PATH := $(TOOLCHAIN)/bin:$(PATH)
 endif
 
+ifeq ($(shell python3 -c 'import sys; print(int(sys.version_info[0] > 2))'),1)
+	PYTHON3 := python3
+else
+	PYTHON3 := python
+endif
+
 PREFIX := arm-none-eabi-
 
 CC := $(PREFIX)gcc
@@ -42,6 +48,10 @@ PORTRAITFORMATTER := $(EA_HOME)/Tools/PortraitFormatter
 PNG2DMP           := $(EA_HOME)/Tools/Png2Dmp
 COMPRESS          := $(EA_HOME)/Tools/compress
 LYN               := $(EA_HOME)/Tools/lyn
+
+TEXT_PROCESS      := $(PYTHON3) $(TOOLS_DIR)/scripts/text-process-c.py
+#TEXT_PROCESS      := $(PYTHON3) $(TOOLS_DIR)/fe-pytools/text-process-classic.py
+TMX2TSA           := $(PYTHON3) $(TOOLS_DIR)/scripts/tmx2tsa.py
 
 FE8_SYM := $(CLIB_HOME)/fe8_us.sym
 FE8_REF := $(CLIB_HOME)/fe8_us.s
@@ -103,6 +113,35 @@ SDEPFLAGS = --MD "$(CACHE_DIR)/$(notdir $*).d"
 # C to ASM rule
 %.asm: %.c
 	$(CC) $(CFLAGS) $(CDEPFLAGS) -S $< -o $@ -fverbose-asm
+
+# =================
+# = GRAPHICS DATA =
+# =================
+
+%.tsa: %.tmx
+	$(TMX2TSA) $< $@
+
+%.lz: %
+	$(COMPRESS) $< $@
+
+# =============
+# = TEXT DATA =
+# =============
+
+TEXT_ALL         := $(shell find 'src/PrepScreenGuide' -type f -name '*.txt')
+TEXT_PARSEDEFS   := src/Text/ParseDefinitions.txt
+TEXT_INSTALLER   := src/Text/TextInstaller.event
+TEXT_DEFINITIONS := src/Text/TextDefinitions.h
+
+# Make text installer and definitions from text
+$(TEXT_INSTALLER) $(TEXT_DEFINITIONS): $(TEXT_ALL)
+	@$(TEXT_PROCESS) $< --definitions $(TEXT_PARSEDEFS) --installer $(TEXT_INSTALLER) --definitions $(TEXT_DEFINITIONS) --parser-exe $(PARSEFILE)
+#	@$(TEXT_PROCESS) $< --parse-definitions $(TEXT_PARSEDEFS) --installer $(TEXT_INSTALLER) --definitions $(TEXT_DEFINITIONS) --parser-exe $(PARSEFILE)
+#	@$(TEXT_PROCESS) $< --definitions $(TEXT_PARSEDEFS) --installer $(dir $<)/$(basename $(notdir $<))_TextInstaller.event --definitions $(dir $<)/$(basename $(notdir $<))_TextDefinitions.h --parser-exe $(PARSEFILE)
+
+# Convert formatted text to insertable binary
+%.fetxt.dmp: %.fetxt
+	@$(PARSEFILE) $< -o $@
 
 # Avoid make deleting objects it thinks it doesn't need anymore
 # Without this make may fail to detect some files as being up to date

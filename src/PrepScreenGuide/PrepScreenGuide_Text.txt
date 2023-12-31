@@ -1,0 +1,6 @@
+## Guide_PrepMenu_Text
+Guide[X]
+
+## Guide_PrepMainMenu_HelpText
+View game-play and[NL]
+terminology explanations.[X]
