@@ -35,5 +35,6 @@ ORG FreeSpace
 
 #include "src/Text/TextInstaller.event"
 
-//#include "src/TitleBgmByFlag/TitleBgmByFlag.event"
+#include "src/TitleBgmByFlag/TitleBgmByFlag.event"
 #include "src/PrepScreenGuide/PrepScreenGuide.event"
+#include "src/MultiTransformManims/MultiTransformManims.event"
