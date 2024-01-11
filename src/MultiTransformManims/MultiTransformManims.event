@@ -9,7 +9,7 @@
 ORG FreeSpace
 #endif
 
-#define ManimTransformEnt(itemId, sourceClassId, displayClassId, palette) "BYTE itemId; BYTE sourceClassId; BYTE displayClassId; ALIGN 4; WORD palette"
+#define ManimTransformEnt(itemId, sourceClassId, displayClassId, palette) "BYTE itemId; BYTE sourceClassId; BYTE displayClassId; BYTE 0; WORD palette"
 
 #define AnyClass 0x00
 
