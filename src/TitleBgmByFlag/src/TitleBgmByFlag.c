@@ -1,10 +1,12 @@
 #include "global.h"
 
 #include "bmsave.h"
-#include "ev_triggercheck.h"
+#include "eventinfo.h"
 #include "opanim.h"
 #include "soundwrapper.h"
 #include "hardware.h"
+#include "sysutil.h"
+#include "soundroom.h"
 
 #include "TitleBgmByFlag.h"
 
@@ -69,9 +71,6 @@ void StartTitleScreen_WithMusic(ProcPtr parent) {
 
     return;
 }
-
-// unnecessary for our purposes; only declared to satisfy the function below since the struct is not currently in a proper header in decomp
-struct SoundRoomProc;
 
 /* Hook; vanilla FE8U = 0x080AFA64 */
 void SoundRoomUi_RestartTitleMusic(struct SoundRoomProc * proc) {
