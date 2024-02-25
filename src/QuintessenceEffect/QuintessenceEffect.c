@@ -21,9 +21,6 @@ extern u16 Pal_QuintessenceFx[];
 // TODO: We could import the palette from FE7, but this is close enough
 #define Pal_QuintessenceFx Pal_GameOverText1
 
-// Defined in EA
-extern u8 Tsa_QuintessenceFx[];
-
 extern void TryLockParentProc(ProcPtr);   // FE8U: 0x080854E4
 extern void TryUnlockParentProc(ProcPtr); // FE8U: 0x080854F0
 
@@ -225,7 +222,7 @@ void QuintessenceFx_Init_Main(struct QuintessenceFxProc * proc)
 
     ApplyPalette(Pal_QuintessenceFx, 5);
     Decompress(Img_ChapterIntroFog, (void *)0x06004000);
-    TmApplyTsa_thm(gBG2TilemapBuffer, Tsa_QuintessenceFx, 0x5200);
+    TmApplyTsa_thm(gBG2TilemapBuffer, gUnknown_085A647C, 0x5200);
 
     EnableBgSync(BG2_SYNC_BIT | BG3_SYNC_BIT);
     SetBgOffset(BG_2, 0, 0);
