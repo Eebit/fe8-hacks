@@ -8,7 +8,4 @@ ORG FreeSpace
 
 #include "QuintessenceEffect.lyn.event"
 
-Tsa_QuintessenceFx:
-    #incbin "data/FE7J_Tsa_081BD6E4.tsa"
-
 #endif /* QUINTESSENCE_EFFECT_INSTALLED */
