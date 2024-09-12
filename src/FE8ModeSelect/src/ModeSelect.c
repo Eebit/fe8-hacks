@@ -14,6 +14,8 @@
 #include "bmlib.h"
 #include "mu.h"
 #include "bmsave.h"
+#include "sysutil.h"
+#include "efxbattle.h"
 
 #include "constants/faces.h"
 
@@ -24,15 +26,13 @@ fun __modsi3, __aeabi_idivmod
 fun __udivsi3, __aeabi_uidiv
 fun __umodsi3, __aeabi_uidivmod
 
-dat 0x02000000, gUnk_02000000
-dat 0x02000001, gUnk_02000001
+dat 0x02000000, gUnk_ModeSelect_02000000
+dat 0x02000001, gUnk_ModeSelect_02000001
 dat 0x020000A4, gUnk_020000A4
 dat 0x0201E8D4, gUnk_0201E8D4
 dat 0x0201E97C, gUnk_0201E97C
 dat 0x0201E9F4, gUnk_0201E9F4
 */
-
-void sub_806E8F0(void);
 
 #define ApplySystemObjectsGraphics LoadObjUIGfx
 #define SetBgOffset BG_SetPosition
@@ -42,32 +42,18 @@ void sub_806E8F0(void);
 #define SetFaceConfig SetupFaceGfxData
 #define TmApplyTsa_thm CallARM_FillTileRect
 #define GetBgChrOffset GetBackgroundTileDataOffset
-#define fe7u_func_08063FE0 sub_806E8F0
-#define fe7u_func_080A8CE8 sub_80ACCF4 // LoadUiSpinningArrowGfx
-#define fe7u_func_080A8D70 sub_80ACD7C // SetUiSpinningArrowConfig
-#define fe7u_func_080A8D54 sub_80ACD60 // SetUiSpinningArrowPositions
+#define fe7u_func_08063FE0 ResetClassReelSpell
 #define fe7u_func_08054E10 sub_805A940
-#define GetMsg GetStringFromIndex
-#define EnableBgSync BG_EnableSyncByMask
-#define fe7u_func_080A9DE8 sub_80ADDFC // affine something or other
-#define fe7u_func_080A8D98 sub_80ACDA4 // SetUiSpinningArrowsFast
 #define fe7u_func_08054C8C sub_805A7B4
 #define fe7u_func_08054EF0 sub_805AA28
-#define fe7u_func_080A8CD4 sub_80ACCE0 // StartUiSpinningArrows
 #define fe7u_func_080A86A0 sub_80AC6AC
-#define fe7u_func_08054EC8 NewEkrUnitMainMini
-#define fe7u_func_08007BCC StartFace2
-#define fe7u_func_0800751C StartFaceFadeIn
-#define fe7u_func_08005AD4 PutDrawText
 #define fe7u_func_08001F3C sub_800154C
 #define SetOnHBlankA SetPrimaryHBlankHandler
 #define InitBgs SetupBackgrounds
-#define EndAllMus MU_EndAll
 #define EnablePalSync EnablePaletteSync
 #define LoadMetaSave ReadGlobalSaveInfo
 #define MetaSave_CountCompletedPlaythroughs GetGlobalCompletionCntByInfo
 #define fe7u_func_08054E88 NewEfxAnimeDrvProc
-#define fe7u_func_08003388 WriteOAMRotScaleData
 
 #define gBg0Tm gBG0TilemapBuffer
 #define gBg1Tm gBG1TilemapBuffer
@@ -76,8 +62,8 @@ void sub_806E8F0(void);
 
 struct Unk_020000A4
 {
-    struct Font unk_00;
-    struct Text unk_18[7];
+    struct Font font;
+    struct Text text[7];
 };
 extern struct Unk_020000A4 gUnk_020000A4;
 
@@ -100,54 +86,12 @@ struct ModeSelectProc
     /* 50 */ s32 unk_50;
 };
 
-struct OpInfoData
-{
-    /* 00 */ u8 unk_00;
-    /* 01 */ u8 unk_01;           // generic pal ID
-    /* 02 */ u16 unk_02;          // xPos
-    /* 04 */ u16 unk_04;          // yPos
-    /* 06 */ u16 unk_06;          // animId
-    /* 08 */ u16 unk_08;          // charPalId
-    /* 0A */ u16 unk_0A;          // AISMode
-    /* 0C */ u16 unk_0C;          // state2
-    /* 0E */ u16 unk_0E;          // tileOffset
-    /* 10 */ u16 unk_10;          // palOffset
-    /* 14 */ void * unk_14;       // AIS1
-    /* 18 */ void * unk_18;       // AIS2
-    /* 1C */ const void * unk_1C; // Huichelaar says this is "sheet"
-    /* 20 */ const void * unk_20; // pal
-    /* 24 */ const void * unk_24; // rtlOam
-    /* 28 */ const void * unk_28; // frameData
-    /* 2C */ s32 unk_2C;          // sheetPointer
-    /* 30 */ void * unk_30;       // magicEffects
-    /* 34 */ void * unk_34;       // ProcPtr; Procs_ekrUnitMainMini
-};
+extern struct AnimBuffer gUnk_0201E8D4[];
 
-extern struct OpInfoData gUnk_0201E8D4[];
+extern struct AnimMagicFxBuffer gUnk_0201E97C[];
 
-struct Unk0201E97C
-{
-    u16 unk_00;
-    u16 unk_02;
-    u16 unk_04;
-    u16 unk_06;
-    u16 unk_08;
-    u16 unk_0A;
-    u16 unk_0C;
-    u16 unk_0E;
-    u16 unk_10;
-    u16 unk_12;
-    int unk_14;
-    int unk_18;
-    void * unk_1C;
-    void * unk_20;
-    void * unk_24;
-};
-
-extern struct Unk0201E97C gUnk_0201E97C[];
-
-extern u8 gUnk_02000000;
-extern u8 gUnk_02000001;
+extern u8 gUnk_ModeSelect_02000000;
+extern u8 gUnk_ModeSelect_02000001;
 
 // ==============
 // TODO:
@@ -167,12 +111,11 @@ u32 fe7u_func_0809EFBC(void)
 
 int fe7u_func_0809E9FC(void)
 {
-    int cVar1;
-    int iVar2;
-    int uVar3;
-    struct GlobalSaveInfo auStack_70;
+    // int cVar1;
+    // int iVar2;
+    // struct GlobalSaveInfo auStack_70;
 
-    uVar3 = 0;
+    int uVar3 = 0;
 /*
     if (LoadMetaSave(&auStack_70))
     {
@@ -244,41 +187,10 @@ int const gUnk_08CE48C0[4][3] = {
 
 // clang-format on
 
-void fe7u_func_080A9E7C(u8 param_1, s16 param_2, s16 param_3)
+void fe7u_func_08054E5C(struct AnimBuffer * pAnimBuf)
 {
-    struct BG2Stuff * puVar1 = NULL;
-
-    if (param_1 == 2) {
-        puVar1 = &gLCDControlBuffer.bg2stuff;
-    }
-
-    puVar1->bg2pb = (puVar1->bg2pb * param_2) >> 8;
-    puVar1->bg2pd = (puVar1->bg2pd * param_2) >> 8;
-
-    puVar1->bg2pa = (puVar1->bg2pa * param_3) >> 8;
-    puVar1->bg2pc = (param_3 * puVar1->bg2pc) >> 8;
-
-    return;
-}
-
-void fe7u_func_080A9ECC(u8 a, s16 b, s16 c, s16 d, s16 e)
-{
-    struct BG2Stuff * puVar1 = NULL;
-
-    if (a == 2) {
-        puVar1 = &gLCDControlBuffer.bg2stuff;
-    }
-
-    puVar1->bg2x = puVar1->bg2pa * -b + puVar1->bg2pb * -c + ((d << 0x10) >> 8);
-    puVar1->bg2y = puVar1->bg2pc * -b + puVar1->bg2pd * -c + ((e << 0x10) >> 8);
-
-    return;
-}
-
-void fe7u_func_08054E5C(struct OpInfoData * param_1)
-{
-    ((struct Anim *)(param_1->unk_14))->state3 |= 8;
-    ((struct Anim *)(param_1->unk_18))->state3 |= 8;
+    pAnimBuf->anim1->state3 |= 8;
+    pAnimBuf->anim2->state3 |= 8;
     return;
 }
 
@@ -307,11 +219,13 @@ extern u8 Img_0840FEB4[]; // gfx
 extern u8 Tsa_0840FA00[]; // tsa?
 extern u8 Tsa_08411F34[]; // tsa?
 
+// Blend effect on the spell circle
+
 void fe7u_func_080A32D4(void)
 {
     u16 vcount = REG_VCOUNT + 1;
 
-    if (vcount > 0xa0) {
+    if (vcount > DISPLAY_HEIGHT) {
         vcount = 0;
     }
 
@@ -319,15 +233,15 @@ void fe7u_func_080A32D4(void)
         return;
     }
 
-    if (vcount < gUnk_02000000) {
+    if (vcount < gUnk_ModeSelect_02000000) {
         REG_BLDCNT = 0xc1;
-        REG_BLDY = (gUnk_02000000 != 0) 
-            ? (gUnk_02000000 - vcount) * 0x10 / gUnk_02000000 
+        REG_BLDY = (gUnk_ModeSelect_02000000 != 0) 
+            ? (gUnk_ModeSelect_02000000 - vcount) * 0x10 / gUnk_ModeSelect_02000000 
             : 0;
 
     } else {
         REG_BLDCNT = 0x144;
-        REG_BLDALPHA = gUnk_02000001 | 0x1000;
+        REG_BLDALPHA = gUnk_ModeSelect_02000001 | 0x1000;
     }
 
     return;
@@ -352,21 +266,21 @@ void fe7u_func_080A4E58(void)
 
     SetDispEnable(0, 0, 0, 0, 0);
 
-    gUnk_02000001 = 10;
-    gUnk_02000000 = 100;
+    gUnk_ModeSelect_02000001 = 10;
+    gUnk_ModeSelect_02000000 = 100;
 
     SetOnHBlankA(fe7u_func_080A32D4);
 
     ApplyPaletteExt(Pal_084138F0, 0x220, 0x100);
     ApplyPaletteExt(Pal_0840F9A0, 0, 0x60);
 
-    Decompress(Img_08418E44, (void *)(GetBgChrOffset(0) + 0x6000000));
+    Decompress(Img_08418E44, (void *)(GetBgChrOffset(BG_0) + 0x6000000));
     TmApplyTsa_thm(gBg0Tm, Tsa_0840FA00, 0);
 
-    Decompress(Img_0840FEB4, (void *)(GetBgChrOffset(3) + 0x6000000));
+    Decompress(Img_0840FEB4, (void *)(GetBgChrOffset(BG_3) + 0x6000000));
     fe7u_func_08001F3C(gBg3Tm, Tsa_08411F34, 0, 5);
 
-    EnableBgSync(8);
+    BG_EnableSyncByMask(BG3_SYNC_BIT);
 
     return;
 }
@@ -417,65 +331,67 @@ const u8 * const gUnk_08CE4830[] = {
     (u8 *)0x0201BED4,
 };
 
-void fe7u_func_080A7480(int param_1, u8 * param_2)
-{
-    // anims?
-    int gUnk_08418DA8[] = {
-        2,
-        0,
-        0x9c,
-    };
+// anims?
+const int gUnk_08418DA8[] = {
+    2,
+    0,
+    0x9c,
+};
 
+// FE7U: 0x080A7480
+void InitModeSelectAnims(int count, u8 * arg_1)
+{
     int i;
 
-    for (i = 0; i < param_1; i++)
+    for (i = 0; i < count; i++)
     {
-        gUnk_0201E8D4[i].unk_02 = 0x140;
-        gUnk_0201E8D4[i].unk_04 = 0x58;
-        gUnk_0201E8D4[i].unk_06 = gUnk_08418DA8[param_2[i]];
-        gUnk_0201E8D4[i].unk_0A = 6;
-        gUnk_0201E8D4[i].unk_01 = 0;
-        gUnk_0201E8D4[i].unk_0C = 1;
-        gUnk_0201E8D4[i].unk_0E = (i * 0x2000 + 0x2000) >> 5;
-        gUnk_0201E8D4[i].unk_10 = i + 0xd;
+        gUnk_0201E8D4[i].xPos = 320;
+        gUnk_0201E8D4[i].yPos = 88;
+        gUnk_0201E8D4[i].animId = gUnk_08418DA8[arg_1[i]];
+        gUnk_0201E8D4[i].roundType = 6;
+        gUnk_0201E8D4[i].genericPalId = 0;
+        gUnk_0201E8D4[i].state2 = 1;
+        gUnk_0201E8D4[i].oam2Tile = (i * 0x2000 + 0x2000) >> 5;
+        gUnk_0201E8D4[i].oam2Pal = i + 0xd;
 
-        gUnk_0201E8D4[i].unk_1C = gUnk_08CE480C[i];
-        gUnk_0201E8D4[i].unk_24 = gUnk_08CE4818[i];
-        gUnk_0201E8D4[i].unk_20 = gUnk_08CE4824[i];
-        gUnk_0201E8D4[i].unk_28 = gUnk_08CE4830[i];
+        gUnk_0201E8D4[i].pImgSheetBuf = (void *)gUnk_08CE480C[i];
+        gUnk_0201E8D4[i].unk_24 = (void *)gUnk_08CE4818[i];
+        gUnk_0201E8D4[i].unk_20 = (void *)gUnk_08CE4824[i];
+        gUnk_0201E8D4[i].unk_28 = (void *)gUnk_08CE4830[i];
 
-        gUnk_0201E8D4[i].unk_08 = 0xffff;
+        gUnk_0201E8D4[i].charPalId = 0xffff;
 
         gUnk_0201E8D4[i].unk_30 = &gUnk_0201E97C[i];
 
-        gUnk_0201E97C[i].unk_00 = 0;
-        gUnk_0201E97C[i].unk_02 = 0;
-        gUnk_0201E97C[i].unk_04 = 0;
-        gUnk_0201E97C[i].unk_06 = 0;
-        gUnk_0201E97C[i].unk_08 = 0;
-        gUnk_0201E97C[i].unk_0E = 0;
-        gUnk_0201E97C[i].unk_10 = 0;
-        gUnk_0201E97C[i].unk_0A = 0;
-        gUnk_0201E97C[i].unk_0C = 0;
-        gUnk_0201E97C[i].unk_12 = 0;
+        gUnk_0201E97C[i].magicFuncIdx = 0;
+        gUnk_0201E97C[i].xOffsetBg = 0;
+        gUnk_0201E97C[i].yOffsetBg = 0;
+        gUnk_0201E97C[i].xOffsetObj = 0;
+        gUnk_0201E97C[i].yOffsetObj = 0;
+        gUnk_0201E97C[i].objChr = 0;
+        gUnk_0201E97C[i].objPalId = 0;
+        gUnk_0201E97C[i].bgChr = 0;
+        gUnk_0201E97C[i].bgPalId = 0;
+        gUnk_0201E97C[i].bg = 0;
 
-        gUnk_0201E97C[i].unk_14 = 0;
-        gUnk_0201E97C[i].unk_18 = 0;
-        gUnk_0201E97C[i].unk_1C = 0;
-        gUnk_0201E97C[i].unk_20 = 0;
-        gUnk_0201E97C[i].unk_24 = 0;
+        gUnk_0201E97C[i].bgTmBuf = NULL;
+        gUnk_0201E97C[i].bgImgBuf = NULL;
+        gUnk_0201E97C[i].bgTsaBuf = NULL;
+        gUnk_0201E97C[i].objImgBuf = NULL;
+        gUnk_0201E97C[i].resetCallback = NULL;
 
-        fe7u_func_08054EC8(&gUnk_0201E8D4[i]);
+        NewEkrUnitMainMini(&gUnk_0201E8D4[i]);
     }
 
     return;
 }
 
-void fe7u_func_080A75CC(s32 param_1)
+// FE7U: 0x080A75CC
+void EndModeSelectAnims(s32 count)
 {
     int i;
 
-    for (i = 0; i < param_1; i++)
+    for (i = 0; i < count; i++)
     {
         fe7u_func_08054EF0(&gUnk_0201E8D4[i]);
     }
@@ -486,15 +402,16 @@ void fe7u_func_080A75CC(s32 param_1)
 const char StrModeSelect_MainCharacter[] = "Main character:";
 const char StrModeSelect_Weapon[] = "Weapon:";
 
-void fe7u_func_080A75F0(void)
+// FE7U: 0x080A75F0
+void PutModeSelectLabelText(void)
 {
-    ClearText(&gUnk_020000A4.unk_18[5]);
-    ClearText(&gUnk_020000A4.unk_18[6]);
+    ClearText(&gUnk_020000A4.text[5]);
+    ClearText(&gUnk_020000A4.text[6]);
 
-    fe7u_func_08005AD4(&gUnk_020000A4.unk_18[5], gBg1Tm + 0xCE, 0, 0, 0, StrModeSelect_MainCharacter);  // PutDrawText
-    fe7u_func_08005AD4(&gUnk_020000A4.unk_18[6], gBg1Tm + 0x14E, 0, 0, 0, StrModeSelect_Weapon); // PutDrawText
+    PutDrawText(&gUnk_020000A4.text[5], gBg1Tm + TILEMAP_INDEX(14, 6), TEXT_COLOR_SYSTEM_WHITE, 0, 0, StrModeSelect_MainCharacter);
+    PutDrawText(&gUnk_020000A4.text[6], gBg1Tm + TILEMAP_INDEX(14, 10), TEXT_COLOR_SYSTEM_WHITE, 0, 0, StrModeSelect_Weapon);
 
-    EnableBgSync(2);
+    BG_EnableSyncByMask(BG1_SYNC_BIT);
 
     return;
 }
@@ -509,31 +426,32 @@ const char * const StrModeSelect_Wpn[] = {
     StrModeSelect_Mag,
 };
 
-void fe7u_func_080A7668(s32 index)
+// FE7U: 0x080A7668
+void PutModeSelectCharacterText(s32 index)
 {
-    ClearText(&gUnk_020000A4.unk_18[2]);
-    ClearText(&gUnk_020000A4.unk_18[3]);
-    ClearText(&gUnk_020000A4.unk_18[4]);
+    ClearText(&gUnk_020000A4.text[2]);
+    ClearText(&gUnk_020000A4.text[3]);
+    ClearText(&gUnk_020000A4.text[4]);
 
-    fe7u_func_08005AD4(&gUnk_020000A4.unk_18[2], gBg1Tm + 0x10E, 2, 0, 0, GetMsg(gUnk_08CE48C0[index][0]));
-    fe7u_func_08005AD4(&gUnk_020000A4.unk_18[4], gBg1Tm + 0x153, 2, 0, 0, StrModeSelect_Wpn[index]);
+    PutDrawText(&gUnk_020000A4.text[2], gBg1Tm + TILEMAP_INDEX(14, 8), TEXT_COLOR_SYSTEM_BLUE, 0, 0, GetStringFromIndex(gUnk_08CE48C0[index][0]));
+    PutDrawText(&gUnk_020000A4.text[4], gBg1Tm + TILEMAP_INDEX(19, 10), TEXT_COLOR_SYSTEM_BLUE, 0, 0, StrModeSelect_Wpn[index]);
 
-    EnableBgSync(2);
+    BG_EnableSyncByMask(BG1_SYNC_BIT);
 
     return;
 }
 
-void fe7u_func_080A76F8(struct ModeSelectProc * proc)
+// FE7U: 0x080A76F8
+void PutModeSelectDifficultyText(struct ModeSelectProc * proc)
 {
-    int cVar1 = proc->unk_43[proc->unk_41];
+    int unk = proc->unk_43[proc->unk_41];
 
-    ClearText(&gUnk_020000A4.unk_18[0]);
-    ClearText(&gUnk_020000A4.unk_18[1]);
+    ClearText(&gUnk_020000A4.text[0]);
+    ClearText(&gUnk_020000A4.text[1]);
 
-    //fe7u_func_08005AD4(&gUnk_020000A4.unk_18[0], gBg1Tm + 0x18f, cVar1 == 0 ? 3 : 1, 0, 0, GetMsg(0x12ba));
-    fe7u_func_08005AD4(&gUnk_020000A4.unk_18[0], gBg1Tm + 0x18f, cVar1 == 0 ? 3 : 1, 0, 0, GetMsg(0x053E));
+    PutDrawText(&gUnk_020000A4.text[0], gBg1Tm + TILEMAP_INDEX(15, 12), unk == 0 ? TEXT_COLOR_SYSTEM_GOLD : TEXT_COLOR_SYSTEM_GRAY, 0, 0, GetStringFromIndex(0x053E));
 
-    EnableBgSync(2);
+    BG_EnableSyncByMask(BG1_SYNC_BIT);
 
     switch (proc->unk_49[proc->unk_41])
     {
@@ -562,22 +480,22 @@ void fe7u_func_080A76F8(struct ModeSelectProc * proc)
             break;
     }
 
-    //fe7u_func_08005AD4(&gUnk_020000A4.unk_18[1], gBg1Tm + 0x1CF, cVar1 == 1 ? 3 : 1, 0, 0, GetMsg(0x12bb));
-    fe7u_func_08005AD4(&gUnk_020000A4.unk_18[1], gBg1Tm + 0x1CF, cVar1 == 1 ? 3 : 1, 0, 0, GetMsg(0x053F));
+    PutDrawText(&gUnk_020000A4.text[1], gBg1Tm + TILEMAP_INDEX(15, 14), unk == 1 ? TEXT_COLOR_SYSTEM_GOLD : TEXT_COLOR_SYSTEM_GRAY, 0, 0, GetStringFromIndex(0x053F));
 
     return;
 }
 
-void * fe7u_func_080A77C0(int index)
-{
-    int gUnk_08418DB4[3] = { 
-        FID_EIRIKA, 
-        FID_EPHRAIM, 
-        0x46 // FID_LYON
-    };
+const int gUnk_08418DB4[3] = { 
+    FID_EIRIKA, 
+    FID_EPHRAIM, 
+    0x46 // FID_LYON
+};
 
-    struct FaceProc * pFaceProc = fe7u_func_08007BCC(0, gUnk_08418DB4[index], 0xcc, 0x48, 0x42); // StartFace2
-    fe7u_func_0800751C(pFaceProc);                                                    // StartFaceFadeIn
+// FE7U: 0x080A77C0
+struct FaceProc * StartModeSelectFace(int index)
+{
+    struct FaceProc * pFaceProc = StartFace2(0, gUnk_08418DB4[index], 204, 72, (FACE_DISP_KIND(FACE_96x80) | FACE_DISP_HLAYER(FACE_HLAYER_0)));
+    StartFaceFadeIn(pFaceProc);
 
     return pFaceProc;
 }
@@ -597,7 +515,8 @@ extern u8 Img_08416118[]; // img, hector chapter bottom left
 extern u8 Img_084161F4[]; // img, hector chapter top right
 extern u8 Img_08416220[]; // img, hector chapter bottom right
 
-void fe7u_func_080A77F8(s32 param_1)
+// FE7U: 0x080A77F8
+void LoadModeSelectChapterGfx(s32 param_1)
 {
     void * gUnk_08418DC0[3][4] = {
         {
@@ -644,192 +563,158 @@ void fe7u_func_080A7860(s32 palId)
     return;
 }
 
-void fe7u_func_080A7890(int a, int b) {
-
-}
-
-/*
-NAKEDFUNC
-void fe7u_func_080A7890(int a, int b)
+void fe7u_func_080A7890(s32 palId, s32 amt)
 {
-    asm("\n\
-        .syntax unified\n\
-        push {r4, r5, r6, r7, lr}\n\
-        adds r2, r0, #0\n\
-        adds r4, r1, #0\n\
-        adds r0, #0xd\n\
-        lsls r0, r0, #5\n\
-        ldr r1, .L080A78D8 @ =0x02022A62\n\
-        adds r5, r0, r1\n\
-        cmp r4, #0x40\n\
-        ble .L080A78A4\n\
-        movs r4, #0x40\n\
-    .L080A78A4:\n\
-        ldr r0, .L080A78DC @ =0x02000001\n\
-        ldrb r0, [r0]\n\
-        subs r0, #0xa\n\
-        lsls r0, r0, #1\n\
-        adds r4, r4, r0\n\
-        lsls r0, r2, #4\n\
-        ldr r1, .L080A78E0 @ =0x0201E9F4\n\
-        subs r0, r0, r2\n\
-        movs r2, #0x1f\n\
-        mov ip, r2\n\
-        lsls r0, r0, #1\n\
-        adds r3, r0, r1\n\
-        movs r6, #0xe\n\
-    .L080A78BE:\n\
-        mov r0, ip\n\
-        ldrh r7, [r3]\n\
-        ands r0, r7\n\
-        muls r0, r4, r0\n\
-        asrs r0, r0, #6\n\
-        cmp r0, #0x1f\n\
-        bgt .L080A78E4\n\
-        cmp r0, #0\n\
-        bge .L080A78D2\n\
-        movs r0, #0\n\
-    .L080A78D2:\n\
-        mov r1, ip\n\
-        ands r1, r0\n\
-        b .L080A78E6\n\
-        .align 2, 0\n\
-    .L080A78D8: .4byte 0x02022A62\n\
-    .L080A78DC: .4byte 0x02000001\n\
-    .L080A78E0: .4byte 0x0201E9F4\n\
-    .L080A78E4:\n\
-        movs r1, #0x1f\n\
-    .L080A78E6:\n\
-        movs r2, #0xf8\n\
-        lsls r2, r2, #2\n\
-        adds r0, r2, #0\n\
-        ldrh r7, [r3]\n\
-        ands r0, r7\n\
-        muls r0, r4, r0\n\
-        asrs r0, r0, #6\n\
-        cmp r0, r2\n\
-        bgt .L080A7904\n\
-        cmp r0, #0\n\
-        bge .L080A78FE\n\
-        movs r0, #0\n\
-    .L080A78FE:\n\
-        ands r0, r2\n\
-        adds r1, r1, r0\n\
-        b .L080A7906\n\
-    .L080A7904:\n\
-        adds r1, r1, r2\n\
-    .L080A7906:\n\
-        movs r2, #0xf8\n\
-        lsls r2, r2, #7\n\
-        adds r0, r2, #0\n\
-        ldrh r7, [r3]\n\
-        ands r0, r7\n\
-        muls r0, r4, r0\n\
-        asrs r0, r0, #6\n\
-        cmp r0, r2\n\
-        bgt .L080A7924\n\
-        cmp r0, #0\n\
-        bge .L080A791E\n\
-        movs r0, #0\n\
-    .L080A791E:\n\
-        ands r0, r2\n\
-        adds r0, r1, r0\n\
-        b .L080A7926\n\
-    .L080A7924:\n\
-        adds r0, r1, r2\n\
-    .L080A7926:\n\
-        strh r0, [r5]\n\
-        adds r5, #2\n\
-        adds r3, #2\n\
-        subs r6, #1\n\
-        cmp r6, #0\n\
-        bge .L080A78BE\n\
-        bl EnablePaletteSync\n\
-        pop {r4, r5, r6, r7}\n\
-        pop {r0}\n\
-        bx r0\n\
-        .syntax divided\n\
-    ");
-}
-*/
+    s32 i;
 
-void fe7u_func_080A793C(s32 param_1, s32 param_2)
-{
-    s32 a = (param_2 & 0xff);
-    s32 tmp = (((a >= 0x81) ? a - 0x80 : 0x80 - a) * 0x30 >> 7);
-    fe7u_func_080A7890(param_1, tmp + 0x10);
+    u16 * r5 = (gPal + (palId + 0xd) * 0x10 + 0x101);
+
+    if (amt > 0x40)
+    {
+        amt = 0x40;
+    }
+
+    amt = amt + (gUnk_ModeSelect_02000001 - 10) * 2;
+
+    for (i = 0; i < 0xf; i++)
+    {
+        s32 accum = 0;
+        s32 r;
+        s32 g;
+        s32 b;
+
+        r = (amt * (gUnk_0201E9F4[i + palId * 0xf] & RED_MASK)) >> 6;
+
+        if (r <= RED_MASK)
+        {
+            if (r < 0)
+                r = 0;
+
+            accum += r & RED_MASK;
+        }
+        else
+            accum += RED_MASK;
+
+        g = (amt * (gUnk_0201E9F4[i + palId * 0xf] & GREEN_MASK)) >> 6;
+
+        if (g <= GREEN_MASK)
+        {
+            if (g < 0)
+                g = 0;
+
+            accum += g & GREEN_MASK;
+        }
+        else
+            accum += GREEN_MASK;
+
+        b = (amt * (gUnk_0201E9F4[i + palId * 0xf] & BLUE_MASK)) >> 6;
+
+        if (b <= BLUE_MASK)
+        {
+            if (b < 0)
+                b = 0;
+
+            *r5 = accum + (b & BLUE_MASK);
+        }
+        else
+        {
+            *r5 = accum + BLUE_MASK;
+        }
+
+        r5++;
+    }
+
+    EnablePalSync();
 
     return;
 }
 
-void fe7u_func_080A796C(struct ModeSelectSpriteDrawProc * param_1)
+void fe7u_func_080A793C(s32 palId, s32 b)
 {
-    param_1->unk_30 = 0;
-    param_1->unk_3e = 0;
-    param_1->unk_3c = 0;
-    param_1->unk_34 = 0x78;
-    param_1->unk_38 = 0xa0;
-    param_1->unk_40 = 0;
-    param_1->unk_44 = 0;
-    param_1->unk_3c = 0;
-    param_1->unk_48 = 0;
-    param_1->unk_4c = 0;
-    param_1->unk_2c = 0;
-    param_1->unk_4e = 0;
+    s32 b_ = (b & 0xff);
+    s32 tmp = (((b_ >= 0x81) ? b_ - 0x80 : 0x80 - b_) * 0x30 >> 7);
+    fe7u_func_080A7890(palId, tmp + 0x10);
 
     return;
 }
 
-// sprites
+// FE7U: 0x080A796C
+void ModeSelectSpriteDraw_Init(struct ModeSelectSpriteDrawProc * proc)
+{
+    proc->unk_30 = 0;
+    proc->unk_3e = 0;
+    proc->unk_3c = 0;
+    proc->unk_34 = DISPLAY_WIDTH / 2;
+    proc->unk_38 = DISPLAY_HEIGHT;
+    proc->unk_40 = 0;
+    proc->unk_44 = 0;
+    proc->unk_3c = 0;
+    proc->unk_48 = 0;
+    proc->unk_4c = 0;
+    proc->unk_2c = 0;
+    proc->unk_4e = 0;
+
+    return;
+}
 
 // clang-format off
 
-u16 const gUnk_08CE483C[] = {
-    0x0004, 
-    0x4000, 0x8000, 0x0000, 
-    0x4000, 0x8020, 0x0004, 
-    0x4010, 0x4000, 0x0040, 
-    0x4010, 0x4020, 0x0044,
+// FE7U: 0x08CE483C
+u16 const Sprite_ModeSelect_Mode[] =
+{
+    4,
+    OAM0_SHAPE_32x16, OAM1_SIZE_32x16, 0,
+    OAM0_SHAPE_32x16, OAM1_SIZE_32x16 + OAM1_X(32), OAM2_CHR(0x4),
+    OAM0_SHAPE_32x8 + OAM0_Y(16), OAM1_SIZE_32x8, OAM2_CHR(0x40),
+    OAM0_SHAPE_32x8 + OAM0_Y(16), OAM1_SIZE_32x8 + OAM1_X(32), OAM2_CHR(0x44),
 };
 
-u16 const gUnk_08CE4856[] = {
-    0x0006, 
-    0x4000, 0x8000, 0x0008, 
-    0x4000, 0x8020, 0x000C, 
-    0x8000, 0x0040, 0x0010,
-    0x4010, 0x4000, 0x0060, 
-    0x4010, 0x4020, 0x0064, 
-    0x0010, 0x0040, 0x0068,
+// FE7U: 0x08CE4856
+u16 const Sprite_ModeSelect_Select[] =
+{
+    6,
+    OAM0_SHAPE_32x16, OAM1_SIZE_32x16, OAM2_CHR(0x8),
+    OAM0_SHAPE_32x16, OAM1_SIZE_32x16 + OAM1_X(32), OAM2_CHR(0xC),
+    OAM0_SHAPE_8x16, OAM1_SIZE_8x16 + OAM1_X(64), OAM2_CHR(0x10),
+    OAM0_SHAPE_32x8 + OAM0_Y(16), OAM1_SIZE_32x8, OAM2_CHR(0x60),
+    OAM0_SHAPE_32x8 + OAM0_Y(16), OAM1_SIZE_32x8 + OAM1_X(32), OAM2_CHR(0x64),
+    OAM0_SHAPE_8x8 + OAM0_Y(16), OAM1_SIZE_8x8 + OAM1_X(64), OAM2_CHR(0x68),
 };
 
-u16 const gUnk_08CE487C[] = {
-    0x0005, 
-    0x4000, 0x4000, 0x0011, 
-    0x4008, 0x4000, 0x0049, 
-    0x4000, 0x4020, 0x0031, 
-    0x4008, 0x4020, 0x004D, 
-    0x8000, 0x0040, 0x0055,
+// FE7U: 0x08CE487C
+u16 const Sprite_ModeSelect_PressStart[] =
+{
+    5,
+    OAM0_SHAPE_32x8, OAM1_SIZE_32x8, OAM2_CHR(0x11),
+    OAM0_SHAPE_32x8 + OAM0_Y(8), OAM1_SIZE_32x8, OAM2_CHR(0x49),
+    OAM0_SHAPE_32x8, OAM1_SIZE_32x8 + OAM1_X(32), OAM2_CHR(0x31),
+    OAM0_SHAPE_32x8 + OAM0_Y(8), OAM1_SIZE_32x8 + OAM1_X(32), OAM2_CHR(0x4D),
+    OAM0_SHAPE_8x16, OAM1_SIZE_8x16 + OAM1_X(64), OAM2_CHR(0x55),
 };
 
-u16 const gUnk_08CE489C[] = {
-    0x0001,
-    0x4000, 0x4000, 0x0051,
+// FE7U: 0x08CE489C
+u16 const Sprite_ModeSelect_Change[] =
+{
+    1,
+    OAM0_SHAPE_32x8, OAM1_SIZE_32x8, OAM2_CHR(0x51),
 };
 
-u16 const gUnk_08CE48A4[] = {
-    0x0004, 
-    0x4100, 0x8000, 0x0016, 
-    0x4100, 0x8020, 0x001A, 
-    0x0100, 0x4040, 0x001E, 
-    0x4100, 0x8050, 0x0056,
+// FE7U: 0x08CE48A4
+u16 const Sprite_ModeSelect_ChapterRange[] =
+{
+    4,
+    OAM0_SHAPE_32x16 + OAM0_AFFINE_ENABLE, OAM1_SIZE_32x16, OAM2_CHR(0x16),
+    OAM0_SHAPE_32x16 + OAM0_AFFINE_ENABLE, OAM1_SIZE_32x16 + OAM1_X(32), OAM2_CHR(0x1A),
+    OAM0_SHAPE_16x16 + OAM0_AFFINE_ENABLE, OAM1_SIZE_16x16 + OAM1_X(64), OAM2_CHR(0x1E),
+    OAM0_SHAPE_32x16 + OAM0_AFFINE_ENABLE, OAM1_SIZE_32x16 + OAM1_X(80), OAM2_CHR(0x56),
 };
 
 // clang-format on
 
-void fe7u_func_08054E10(struct OpInfoData *, s16, s16);
 s32 fe7u_func_080A86A0(s32, s32, s32, s32, s32);
 
-void fe7u_func_080A79A4(struct ModeSelectSpriteDrawProc * proc)
+// FE7U: 0x080A79A4
+void ModeSelectSpriteDraw_Loop(struct ModeSelectSpriteDrawProc * proc)
 {
     s32 i;
 
@@ -837,21 +722,21 @@ void fe7u_func_080A79A4(struct ModeSelectSpriteDrawProc * proc)
     {
         for (i = 0; i < proc->unk_40; i++)
         {
-            s32 uVar2 = ((proc->unk_3e >> 4) + i * proc->unk_44 + 0x28);
-            s32 x = (proc->unk_34 << 0xc) + (SIN(uVar2) * 0x46);
-            s32 y = (((proc->unk_38 << 0xc) + (COS(uVar2) * 0x1c)) >> 0xc) - 0x10;
+            s32 angle = ((proc->unk_3e >> 4) + i * proc->unk_44 + 40);
+            s32 x = (proc->unk_34 << 12) + (SIN(angle) * 70);
+            s32 y = (((proc->unk_38 << 12) + (COS(angle) * 28)) >> 12) - 16;
 
-            fe7u_func_08054E10(&gUnk_0201E8D4[i], x >> 0xc, y);
+            fe7u_func_08054E10(&gUnk_0201E8D4[i], x >> 12, y);
 
             fe7u_func_080A793C(i, (proc->unk_3e >> 4) + i * proc->unk_44);
         }
     }
 
-    sub_80ADDFC(2, proc->unk_3e, 0, 0, 0x160, 0x160);
-    fe7u_func_080A9E7C(2, 0x280, 0x100);
-    fe7u_func_080A9ECC(2, proc->unk_34, proc->unk_38, 0x4c, 0x4c);
+    BgAffinRotScaling(BG_2, proc->unk_3e, 0, 0, 0x160, 0x160);
+    BgAffinScaling(BG_2, 0x280, 0x100);
+    BgAffinAnchoring(BG_2, proc->unk_34, proc->unk_38, 76, 76);
 
-    gUnk_02000001 = fe7u_func_080A86A0(8, 8, 0x10, 0x10, proc->unk_48);
+    gUnk_ModeSelect_02000001 = fe7u_func_080A86A0(8, 8, 16, 16, proc->unk_48);
 
     if (proc->unk_4c == 0)
     {
@@ -873,20 +758,21 @@ void fe7u_func_080A79A4(struct ModeSelectSpriteDrawProc * proc)
 
     if (proc->unk_4e & 2)
     {
-        DisplayFrozenUiHandExt(0x6c, (proc->unk_4d & 1) * 0x10 + 0x68, 0xbc0);
+        DisplayFrozenUiHandExt(108, (proc->unk_4d & 1) * 16 + 104, OAM2_CHR(0x3C0) + OAM2_LAYER(2));
     }
     else
     {
-        DisplayUiHandExt(0x6c, proc->unk_4d * 0x10 + 0x68, 0xbc0);
+        DisplayUiHandExt(108, proc->unk_4d * 16 + 104, OAM2_CHR(0x3C0) + OAM2_LAYER(2));
     }
 
-    PutSpriteExt(0xd, 0, 8, gUnk_08CE483C, 0xb000);
-    PutSpriteExt(0xd, 0x14, 0x1c, gUnk_08CE4856, 0xb000);
-    PutSpriteExt(0xd, 0x28, 0x40, gUnk_08CE489C, 0xb000);
+    PutSpriteExt(0xd, 0, 8, Sprite_ModeSelect_Mode, OAM2_PAL(11));
+    PutSpriteExt(0xd, 20, 28, Sprite_ModeSelect_Select, OAM2_PAL(11));
+
+    PutSpriteExt(0xd, 40, 64, Sprite_ModeSelect_Change, OAM2_PAL(11));
 
     if ((proc->unk_2c >> 2 & 1) == 0)
     {
-        PutSpriteExt(0xd, 8, 0x82, gUnk_08CE487C, 0xb000);
+        PutSpriteExt(0xd, 8, 130, Sprite_ModeSelect_PressStart, OAM2_PAL(11));
     }
 
     if (proc->unk_2c != 0)
@@ -894,7 +780,7 @@ void fe7u_func_080A79A4(struct ModeSelectSpriteDrawProc * proc)
         proc->unk_2c++;
     }
 
-    PutSpriteExt(0xd, 0x6c, 0x18, gUnk_08CE48A4, 0xa000);
+    PutSpriteExt(0xd, 108, 24, Sprite_ModeSelect_ChapterRange, OAM2_PAL(10));
 
     fe7u_func_080A73F8(proc->unk_30);
     proc->unk_30++;
@@ -902,19 +788,26 @@ void fe7u_func_080A79A4(struct ModeSelectSpriteDrawProc * proc)
     return;
 }
 
-struct ProcCmd const ProcScr_08CE48F0[] = {
-    PROC_CALL(fe7u_func_080A796C),
+// clang-format off
+
+// FE7U: 0x08CE48F0
+struct ProcCmd const ProcScr_ModeSelectSpriteDraw[] =
+{
+    PROC_CALL(ModeSelectSpriteDraw_Init),
     PROC_YIELD,
-    PROC_REPEAT(fe7u_func_080A79A4),
+
+    PROC_REPEAT(ModeSelectSpriteDraw_Loop),
 
     PROC_END,
 };
 
+// clang-format on
+
 void fe7u_func_080A7B7C(void)
 {
-    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_08CE48F0);
+    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_ModeSelectSpriteDraw);
 
-    if (proc != 0)
+    if (proc != NULL)
     {
         proc->unk_2c = 1;
     }
@@ -924,9 +817,9 @@ void fe7u_func_080A7B7C(void)
 
 void fe7u_func_080A7B98(void)
 {
-    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_08CE48F0);
+    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_ModeSelectSpriteDraw);
 
-    if (proc != 0)
+    if (proc != NULL)
     {
         proc->unk_3c = 1;
     }
@@ -934,51 +827,54 @@ void fe7u_func_080A7B98(void)
     return;
 }
 
-void fe7u_func_080A7BB4(s32 param_1)
+void fe7u_func_080A7BB4(s32 arg_0)
 {
-    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_08CE48F0);
+    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_ModeSelectSpriteDraw);
 
-    if (proc != 0)
+    if (proc != NULL)
     {
-        proc->unk_40 = param_1;
-        proc->unk_44 = 0x100 / param_1;
+        proc->unk_40 = arg_0;
+        proc->unk_44 = 0x100 / arg_0;
     }
 
     return;
 }
 
-void fe7u_func_080A7BDC(s32 param_1, s32 param_2)
+void fe7u_func_080A7BDC(s32 arg_0, s32 arg_1)
 {
-    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_08CE48F0);
-    if (proc != 0)
+    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_ModeSelectSpriteDraw);
+
+    if (proc != NULL)
     {
-        proc->unk_34 = param_1;
-        proc->unk_38 = param_2;
+        proc->unk_34 = arg_0;
+        proc->unk_38 = arg_1;
     }
 
-    gUnk_02000000 = param_2 - 0x3c;
+    gUnk_ModeSelect_02000000 = arg_1 - 60;
 
     return;
 }
 
-void fe7u_func_080A7C08(u16 param_1)
+void fe7u_func_080A7C08(u16 arg_0)
 {
-    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_08CE48F0);
-    if (proc != 0)
+    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_ModeSelectSpriteDraw);
+
+    if (proc != NULL)
     {
-        proc->unk_3e = param_1;
+        proc->unk_3e = arg_0;
     }
 
     return;
 }
 
-void fe7u_func_080A7C24(u8 param_1, u8 param_2)
+void fe7u_func_080A7C24(u8 arg_0, u8 arg_1)
 {
-    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_08CE48F0);
-    if (proc != 0)
+    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_ModeSelectSpriteDraw);
+
+    if (proc != NULL)
     {
-        proc->unk_4d = param_1;
-        proc->unk_4e = param_2;
+        proc->unk_4d = arg_0;
+        proc->unk_4e = arg_1;
     }
 
     return;
@@ -986,32 +882,33 @@ void fe7u_func_080A7C24(u8 param_1, u8 param_2)
 
 s32 fe7u_func_080A7C4C(void)
 {
-    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_08CE48F0);
+    struct ModeSelectSpriteDrawProc * proc = Proc_Find(ProcScr_ModeSelectSpriteDraw);
     return proc->unk_44;
 }
 
-struct UnkProc
-{
-    PROC_HEADER;
-    STRUCT_PAD(0x29, 0x34);
-    s16 unk_34;
-    s16 unk_36;
-};
+// struct UnkProc
+// {
+//     PROC_HEADER;
+//     STRUCT_PAD(0x29, 0x34);
+//     s16 unk_34;
+//     s16 unk_36;
+// };
 
-void fe7u_func_080A7C60(struct UnkProc * proc, s32 param_2, s32 param_3)
-{
-    if (proc != 0)
-    {
-        proc->unk_34 = param_2;
-        proc->unk_36 = param_3;
-    }
+// void fe7u_func_080A7C60(struct UnkProc * proc, s32 param_2, s32 param_3)
+// {
+//     if (proc != NULL)
+//     {
+//         proc->unk_34 = param_2;
+//         proc->unk_36 = param_3;
+//     }
 
-    return;
-}
+//     return;
+// }
 
 void fe7u_func_080A4E58(void);
 
-void fe7u_func_080A7C6C(struct ModeSelectProc * proc)
+// FE7U: 0x080A7C6C
+void ModeSelect_InitGfxMaybe(struct ModeSelectProc * proc)
 {
     if (proc->unk_42 & 1)
     {
@@ -1021,24 +918,25 @@ void fe7u_func_080A7C6C(struct ModeSelectProc * proc)
     return;
 }
 
-extern struct ProcCmd const ProcScr_08CE48F0[];
+extern struct ProcCmd const ProcScr_ModeSelectSpriteDraw[];
 
-struct FaceVramEntry const gUnk_08CE4910[] = {
+// FE7U: 0x08CE4910
+struct FaceVramEntry const FaceConfig_ModeSelect[] = {
     {
-        0x00001000,
-        0x0000000C,
+        .tileOffset = 0x1000,
+        .paletteId = 0xC,
     },
     {
-        0x00001000,
-        0x0000000C,
+        .tileOffset = 0x1000,
+        .paletteId = 0xC,
     },
     {
-        0x00001000,
-        0x0000000C,
+        .tileOffset = 0x1000,
+        .paletteId = 0xC,
     },
     {
-        0x00001000,
-        0x0000000C,
+        .tileOffset = 0x1000,
+        .paletteId = 0xC,
     },
 };
 
@@ -1057,34 +955,35 @@ int const gUnk_08418DF0[] = {
     0x10,
 };
 
-void fe7u_func_080A7C84(struct ModeSelectProc * proc) {
+// FE7U: 0x080A7C84
+void ModeSelect_Init(struct ModeSelectProc * proc) {
     int i;
 
     ApplySystemObjectsGraphics();
     
-    SetBgOffset(1,8,0xfff8);
+    SetBgOffset(BG_1, 8, -8);
     
-    Proc_LockEachMarked(PROC_MARK_C);
+    Proc_LockEachMarked(PROC_MARK_SAVEDRAW);
     Proc_LockEachMarked(PROC_MARK_D);
     
-    gUnk_02000000 = 100;
+    gUnk_ModeSelect_02000000 = 100;
     
-    SetFaceConfig(gUnk_08CE4910);
+    SetFaceConfig((struct FaceVramEntry *)FaceConfig_ModeSelect);
     
-    ApplyPaletteExt(Pal_08415AA0, 0x1e0, 0x20);
+    ApplyPalette(Pal_08415AA0, 0xF);
     
     Decompress(Img_08415594, (void *)(0x6000000 + GetBgChrOffset(1)));
     TmApplyTsa_thm(gBg0Tm, Tsa_084150E0, 0);
     fe7u_func_080AACD8(gBg1Tm, Tsa_08415AC0, 0xf000); // this loads the "claw menu" and bg of the chapters
-    ApplyPaletteExt(Pal_084150C0, 0x360, 0x20);
+    ApplyPalette(Pal_084150C0, 0x1B);
     
     Decompress(Img_08414940, (void *)0x6010000);
-    ApplyPaletteExt(Pal_0841625C, 0x340, 0x20);
+    ApplyPalette(Pal_0841625C, 0x1A);
     
     fe7u_func_08054E88();
     fe7u_func_08063FE0();
     
-    proc->unk_38 = SpawnProc(ProcScr_08CE48F0, proc);
+    proc->unk_38 = SpawnProc(ProcScr_ModeSelectSpriteDraw, proc);
     fe7u_func_080A7BDC(0, 0x70);
 
     proc->unk_41 = 0;
@@ -1102,12 +1001,15 @@ void fe7u_func_080A7C84(struct ModeSelectProc * proc) {
         proc->unk_49[1] = 2;
 
         for (i = 0; i < proc->unk_4c; i++) {
-            int bVar1 = (gPlaySt.chapterStateBits & PLAY_FLAG_HARD);
-            if ((gPlaySt.chapterStateBits & PLAY_FLAG_HARD) && (proc->unk_40 & gUnk_08418DF0[i])) {
-                bVar1 = 1;
+            if (gPlaySt.chapterStateBits & PLAY_FLAG_HARD) {
+                if (proc->unk_40 & gUnk_08418DF0[i]) {
+                    proc->unk_43[i] = 1;
+                } else {
+                    proc->unk_43[i] = 0;
+                }
+            } else {
+                proc->unk_43[i] = 0;
             }
-
-            proc->unk_43[i] = bVar1;
         }
     } else {
         proc->unk_49[0] = 0;
@@ -1129,39 +1031,39 @@ void fe7u_func_080A7C84(struct ModeSelectProc * proc) {
     }
 
     fe7u_func_080A7BB4(proc->unk_4c);
-    fe7u_func_080A7480(proc->unk_4c, proc->unk_49);
+    InitModeSelectAnims(proc->unk_4c, proc->unk_49);
 
     for (i = 0; i < proc->unk_4c; i++) {
         fe7u_func_080A7860(i);
     }
 
     fe7u_func_080A7B98();
-    fe7u_func_080A8CD4(proc);
-    fe7u_func_080A8CE8(0, 0xd20, 9);
-    fe7u_func_080A8CE8(0, 0xd20, 9);
-    fe7u_func_080A8D70(30, 61, 68, 61);
-    fe7u_func_080A8D54(3);
+    StartUiSpinningArrows(proc);
+    LoadUiSpinningArrowGfx(0, 0xd20, 9);
+    LoadUiSpinningArrowGfx(0, 0xd20, 9);
+    SetUiSpinningArrowPositions(30, 61, 68, 61);
+    SetUiSpinningArrowConfig(3);
 
-    InitTextFont(&gUnk_020000A4.unk_00, (void *)0x600E000, 0x100, 0xe);
+    InitTextFont(&gUnk_020000A4.font, (void *)0x600E000, 0x100, 0xe);
     
-    InitText(&gUnk_020000A4.unk_18[0], 5);
-    InitText(&gUnk_020000A4.unk_18[1], 9);
-    InitText(&gUnk_020000A4.unk_18[2], 5);
-    InitText(&gUnk_020000A4.unk_18[3], 8);
-    InitText(&gUnk_020000A4.unk_18[4], 4);
-    InitText(&gUnk_020000A4.unk_18[5], 10);
-    InitText(&gUnk_020000A4.unk_18[6], 5);
+    InitText(&gUnk_020000A4.text[0], 5);
+    InitText(&gUnk_020000A4.text[1], 9);
+    InitText(&gUnk_020000A4.text[2], 5);
+    InitText(&gUnk_020000A4.text[3], 8);
+    InitText(&gUnk_020000A4.text[4], 4);
+    InitText(&gUnk_020000A4.text[5], 10);
+    InitText(&gUnk_020000A4.text[6], 5);
 
     proc->unk_30 = proc->unk_41 * fe7u_func_080A7C4C() * 0x10;
 
-    proc->unk_3c = (void *)fe7u_func_080A77C0(proc->unk_49[proc->unk_41]);
-    fe7u_func_080A75F0();
-    fe7u_func_080A7668(proc->unk_49[proc->unk_41]);
-    fe7u_func_080A76F8(proc);
+    proc->unk_3c = (void *)StartModeSelectFace(proc->unk_49[proc->unk_41]);
+    PutModeSelectLabelText();
+    PutModeSelectCharacterText(proc->unk_49[proc->unk_41]);
+    PutModeSelectDifficultyText(proc);
     fe7u_func_080A7C24(proc->unk_43[proc->unk_41], proc->unk_42);
     fe7u_func_080A7C08(proc->unk_30);
 
-    EnableBgSync(3);
+    BG_EnableSyncByMask(BG0_SYNC_BIT | BG1_SYNC_BIT);
 
     proc->unk_2c = 0;
     proc->unk_50 = 0;
@@ -1171,10 +1073,10 @@ void fe7u_func_080A7C84(struct ModeSelectProc * proc) {
     SetWin0Box(0, 0x50, 0xf0, 0x50);
     SetWOutLayers(0, 0, 0, 0, 0);
 
-    fe7u_func_080A77F8(proc->unk_49[proc->unk_41]);
+    LoadModeSelectChapterGfx(proc->unk_49[proc->unk_41]);
 
     // clang-format off
-    fe7u_func_08003388(
+    SetObjAffine(
         0,
         Div(+COS(0) * 16, 0x100),
         Div(-SIN(0) * 16, 0x100),
@@ -1186,7 +1088,8 @@ void fe7u_func_080A7C84(struct ModeSelectProc * proc) {
     return;
 }
 
-void fe7u_func_080A8054(struct ModeSelectProc * proc)
+// FE7U: 0x080A8054
+void ModeSelect_TransitionSplitOpen(struct ModeSelectProc * proc)
 {
     s32 tmp;
     s32 unk_2c;
@@ -1208,7 +1111,8 @@ void fe7u_func_080A8054(struct ModeSelectProc * proc)
     return;
 }
 
-void fe7u_func_080A80C4(struct ModeSelectProc * proc)
+// FE7U: 0x080A80C4
+void ModeSelect_TransitionSplitClose(struct ModeSelectProc * proc)
 {
     s32 tmp;
     s32 unk_2c;
@@ -1228,7 +1132,7 @@ void fe7u_func_080A80C4(struct ModeSelectProc * proc)
     return;
 }
 
-void fe7u_func_08054E5C(struct OpInfoData *);
+void fe7u_func_08054E5C(struct AnimBuffer *);
 
 void fe7u_func_080A8120(struct ModeSelectProc * proc)
 {
@@ -1244,131 +1148,91 @@ void fe7u_func_080A8120(struct ModeSelectProc * proc)
     return;
 }
 
-void fe7u_func_080A76F8(struct ModeSelectProc *);
+void PutModeSelectDifficultyText(struct ModeSelectProc *);
 
 void fe7u_func_080A8150(struct ModeSelectProc * proc, s32 param_2)
 {
     proc->unk_43[proc->unk_41] = param_2;
 
-    fe7u_func_080A76F8(proc);
+    PutModeSelectDifficultyText(proc);
     fe7u_func_080A7C24(param_2, proc->unk_42);
 
     return;
 }
 
-void fe7u_func_08054C8C(struct OpInfoData *);
+void fe7u_func_08054C8C(struct AnimBuffer *);
 
-void fe7u_func_080A817C(struct ModeSelectProc * proc)
+// FE7U: 0x080A817C
+void ModeSelect_Loop_KeyHandler(struct ModeSelectProc * proc)
 {
-    if (((gKeyStatusPtr->repeatedKeys & 0x40) != 0) && (proc->unk_43[proc->unk_41]) == 1)
+    if (((gKeyStatusPtr->repeatedKeys & DPAD_UP) != 0) && (proc->unk_43[proc->unk_41]) == 1)
     {
-        if (!gPlaySt.config.disableSoundEffects)
-        {
-            // m4aSongNumStart(0x386);
-            m4aSongNumStart(0x66);
-        }
-
+        PlaySoundEffect(0x66);
         fe7u_func_080A8150(proc, 0);
         return;
     }
 
-    if ((gKeyStatusPtr->repeatedKeys & 0x80) != 0)
+    if ((gKeyStatusPtr->repeatedKeys & DPAD_DOWN) != 0)
     {
         if (proc->unk_43[proc->unk_41] == 0)
         {
 
             if ((proc->unk_49[proc->unk_41] == 0) && ((proc->unk_40 & 1) == 0))
             {
-                if (!gPlaySt.config.disableSoundEffects)
-                {
-                    //m4aSongNumStart(0x38c);
-                    m4aSongNumStart(0x6c);
-                }
-
+                PlaySoundEffect(0x6c);
                 return;
             }
 
             if ((proc->unk_49[proc->unk_41] == 1) && ((proc->unk_40 & 4) == 0))
             {
-                if (!gPlaySt.config.disableSoundEffects)
-                {
-                    //m4aSongNumStart(0x38c);
-                    m4aSongNumStart(0x6c);
-                }
-
+                PlaySoundEffect(0x6c);
                 return;
             }
 
             if ((proc->unk_49[proc->unk_41] == 2) && ((proc->unk_40 & 0x10) == 0))
             {
-                if (!gPlaySt.config.disableSoundEffects)
-                {
-                    //m4aSongNumStart(0x38c);
-                    m4aSongNumStart(0x6c);
-                }
-
+                PlaySoundEffect(0x6c);
                 return;
             }
 
-            if (!gPlaySt.config.disableSoundEffects)
-            {
-                // m4aSongNumStart(0x386);
-                m4aSongNumStart(0x66);
-            }
-
+            PlaySoundEffect(0x66);
             fe7u_func_080A8150(proc, 1);
 
             return;
         }
     }
 
-    if ((gKeyStatusPtr->heldKeys & 0x220) != 0)
+    if ((gKeyStatusPtr->heldKeys & (DPAD_LEFT | L_BUTTON)) != 0)
     {
         Proc_Goto(proc, 1);
 
-        fe7u_func_080A8D98(0);
-
-        if (!gPlaySt.config.disableSoundEffects)
-        {
-            //m4aSongNumStart(0x387);
-            m4aSongNumStart(0x67);
-        }
-
+        SetUiSpinningArrowFastMaybe(0);
+        PlaySoundEffect(0x67);
         fe7u_func_080A8120(proc);
 
         return;
     }
 
-    if ((gKeyStatusPtr->heldKeys & 0x110) != 0)
+    if ((gKeyStatusPtr->heldKeys & (DPAD_RIGHT | R_BUTTON)) != 0)
     {
         Proc_Goto(proc, 2);
 
-        fe7u_func_080A8D98(1);
-
-        if (!gPlaySt.config.disableSoundEffects)
-        {
-            //m4aSongNumStart(0x387);
-            m4aSongNumStart(0x67);
-        }
-
+        SetUiSpinningArrowFastMaybe(1);
+        PlaySoundEffect(0x67);
         fe7u_func_080A8120(proc);
 
         return;
     }
 
-    if ((gKeyStatusPtr->newKeys & 9) != 0)
+    if ((gKeyStatusPtr->newKeys & (START_BUTTON | A_BUTTON)) != 0)
     {
         proc->unk_2c = 0;
 
-        if (!gPlaySt.config.disableSoundEffects)
-        {
-            //m4aSongNumStart(0x38a);
-            m4aSongNumStart(0x6a);
-        }
+        PlaySoundEffect(0x6a);
 
         Proc_Goto(proc, 3);
 
-        gUnk_0201E8D4[proc->unk_41].unk_0A = 0;
+        gUnk_0201E8D4[proc->unk_41].roundType = 0;
         fe7u_func_08054C8C(&gUnk_0201E8D4[proc->unk_41]);
 
         if ((proc->unk_42 & 1) != 0)
@@ -1385,16 +1249,16 @@ void fe7u_func_080A817C(struct ModeSelectProc * proc)
 
             if (proc->unk_43[proc->unk_41] != 0)
             {
-                gPlaySt.chapterStateBits |= 0x40;
+                gPlaySt.chapterStateBits |= PLAY_FLAG_HARD;
             }
             else
             {
-                gPlaySt.chapterStateBits &= 0xbf;
+                gPlaySt.chapterStateBits &= ~PLAY_FLAG_HARD;
             }
         }
         else
         {
-            savemenu_SetDifficultyChoice(proc->unk_49[proc->unk_41], proc->unk_43[proc->unk_41]);
+            SaveMenu_SetDifficultyChoice(proc->unk_49[proc->unk_41], proc->unk_43[proc->unk_41]);
             fe7u_func_080A7C24(proc->unk_43[proc->unk_41], proc->unk_42 | 2);
         }
 
@@ -1402,24 +1266,21 @@ void fe7u_func_080A817C(struct ModeSelectProc * proc)
         return;
     }
 
-    if (((gKeyStatusPtr->newKeys & 2) != 0) && ((proc->unk_42 & 1) == 0))
+    if (((gKeyStatusPtr->newKeys & B_BUTTON) != 0) && ((proc->unk_42 & 1) == 0))
     {
         proc->unk_2c = 0;
-        if (!gPlaySt.config.disableSoundEffects)
-        {
-            //m4aSongNumStart(0x38b);
-            m4aSongNumStart(0x6b);
-        }
+
+        PlaySoundEffect(0x6b);
 
         Proc_Goto(proc, 4);
-        savemenu_SetDifficultyChoice(3, 0);
+        SaveMenu_SetDifficultyChoice(3, 0);
     }
 
     proc->unk_50++;
 
     if ((proc->unk_50 & 0x1ff) == 0x20)
     {
-        gUnk_0201E8D4[proc->unk_41].unk_0A = 2;
+        gUnk_0201E8D4[proc->unk_41].roundType = 2;
         fe7u_func_08054C8C(&gUnk_0201E8D4[proc->unk_41]);
     }
 
@@ -1433,7 +1294,8 @@ void fe7u_func_080A817C(struct ModeSelectProc * proc)
     return;
 }
 
-void fe7u_func_080A8424(struct ModeSelectProc * proc)
+// FE7U: 0x080A8424
+void ModeSelect_RotateRight(struct ModeSelectProc * proc)
 {
     proc->unk_34 = -1;
     proc->unk_2c = 0;
@@ -1461,7 +1323,8 @@ void fe7u_func_080A8424(struct ModeSelectProc * proc)
     return;
 }
 
-void fe7u_func_080A848C(struct ModeSelectProc * proc)
+// FE7U: 0x080A848C
+void ModeSelect_RotateLeft(struct ModeSelectProc * proc)
 {
     proc->unk_34 = 1;
     proc->unk_2c = 0;
@@ -1489,47 +1352,48 @@ void fe7u_func_080A848C(struct ModeSelectProc * proc)
     return;
 }
 
-void fe7u_func_080A84F8(struct ModeSelectProc * proc)
+// FE7U: 0x080A84F8
+void ModeSelect_Loop_RotateCarousel(struct ModeSelectProc * proc)
 {
-    s32 iVar5;
-    s32 iVar7;
-    s32 iVar9;
-    u16 uVar10;
+    s32 a;
+    s32 b;
+    s32 c;
+    u16 d;
     s32 r9;
 
-    iVar9 = (proc->unk_32 - proc->unk_30) * proc->unk_34;
+    a = (proc->unk_32 - proc->unk_30) * proc->unk_34;
     r9 = 0x100;
     proc->unk_2c++;
 
-    iVar7 = iVar9 >> 2;
+    b = a >> 2;
 
-    iVar5 = iVar7 * (0x1e - proc->unk_2c) * (0x1e - proc->unk_2c) / 900;
-    uVar10 = (proc->unk_30 + proc->unk_34 * 4 * (iVar7 - iVar5));
+    c = b * (0x1e - proc->unk_2c) * (0x1e - proc->unk_2c) / 900;
+    d = (proc->unk_30 + proc->unk_34 * 4 * (b - c));
 
-    if (proc->unk_2c == 0xd)
+    if (proc->unk_2c == 13)
     {
-        fe7u_func_080A77F8(proc->unk_49[proc->unk_41]);
+        LoadModeSelectChapterGfx(proc->unk_49[proc->unk_41]);
     }
 
-    if (proc->unk_2c == 0xe)
+    if (proc->unk_2c == 14)
     {
-        proc->unk_3c = fe7u_func_080A77C0(proc->unk_49[proc->unk_41]);
+        proc->unk_3c = StartModeSelectFace(proc->unk_49[proc->unk_41]);
     }
 
-    if (proc->unk_2c == 0x14)
+    if (proc->unk_2c == 20)
     {
-        fe7u_func_080A7668(proc->unk_49[proc->unk_41]);
+        PutModeSelectCharacterText(proc->unk_49[proc->unk_41]);
     }
 
-    if (proc->unk_2c == 0x1e)
+    if (proc->unk_2c == 30)
     {
-        uVar10 = proc->unk_32 & 0xfff;
+        d = proc->unk_32 & 0xfff;
         proc->unk_30 = proc->unk_32 & 0xfff;
         Proc_Break(proc);
     }
 
     // clang-format off
-    WriteOAMRotScaleData(
+    SetObjAffine(
         0,
         Div(+COS(0) * 16, r9),
         Div(-SIN(0) * 16, r9),
@@ -1538,14 +1402,15 @@ void fe7u_func_080A84F8(struct ModeSelectProc * proc)
     );
     // clang-format on
 
-    fe7u_func_080A7C08(uVar10);
+    fe7u_func_080A7C08(d);
 
     return;
 }
 
-void fe7u_func_080A8624(struct ModeSelectProc * proc)
+// FE7U: 0x080A8624
+void ModeSelect_End(struct ModeSelectProc * proc)
 {
-    fe7u_func_080A75CC(proc->unk_4c);
+    EndModeSelectAnims(proc->unk_4c);
     EndEfxAnimeDrvProc();
     EndFaceById(0);
 
@@ -1565,30 +1430,32 @@ void fe7u_func_080A95B4(void);
 
 // clang-format off
 
-struct ProcCmd const ProcCmd_08CE4930[] = {
-    PROC_CALL(fe7u_func_080A95B4),
+// FE7U: 0x08CE4930
+struct ProcCmd const ProcScr_ModeSelect[] =
+{
+    PROC_CALL(DisableAllGfx),
     PROC_YIELD,
 
-    PROC_CALL(fe7u_func_080A7C6C),
+    PROC_CALL(ModeSelect_InitGfxMaybe),
     PROC_YIELD,
 
-    PROC_CALL(fe7u_func_080A7C84),
+    PROC_CALL(ModeSelect_Init),
     PROC_YIELD,
 
-    PROC_REPEAT(fe7u_func_080A8054),
+    PROC_REPEAT(ModeSelect_TransitionSplitOpen),
 
 PROC_LABEL(0),
-    PROC_REPEAT(fe7u_func_080A817C),
+    PROC_REPEAT(ModeSelect_Loop_KeyHandler),
 
 PROC_LABEL(1),
-    PROC_CALL(fe7u_func_080A848C),
-    PROC_REPEAT(fe7u_func_080A84F8),
+    PROC_CALL(ModeSelect_RotateLeft),
+    PROC_REPEAT(ModeSelect_Loop_RotateCarousel),
 
     PROC_GOTO(0),
 
 PROC_LABEL(2),
-    PROC_CALL(fe7u_func_080A8424),
-    PROC_REPEAT(fe7u_func_080A84F8),
+    PROC_CALL(ModeSelect_RotateRight),
+    PROC_REPEAT(ModeSelect_Loop_RotateCarousel),
 
     PROC_GOTO(0),
 
@@ -1596,24 +1463,19 @@ PROC_LABEL(3),
     PROC_SLEEP(60),
 
 PROC_LABEL(4),
-    PROC_REPEAT(fe7u_func_080A80C4),
-    PROC_CALL(fe7u_func_080A8624),
+    PROC_REPEAT(ModeSelect_TransitionSplitClose),
+    PROC_CALL(ModeSelect_End),
 
     PROC_END,
 };
 
 // clang-format on
 
-void fe7u_func_080A8664(ProcPtr parent)
+// FE7U: 0x080A8664
+void StartModeSelect(ProcPtr parent)
 {
-    struct ModeSelectProc * proc = Proc_StartBlocking(ProcCmd_08CE4930, parent);
+    struct ModeSelectProc * proc = Proc_StartBlocking(ProcScr_ModeSelect, parent);
     proc->unk_42 = 1;
-    return;
-}
-
-void fe7u_func_080A95B4(void)
-{
-    SetDispEnable(0, 0, 0, 0, 0);
     return;
 }
 
@@ -1622,8 +1484,9 @@ void fe7u_func_080A95B4(void)
 extern u16 gBgConfig_SaveMenu[];
 
 //! Hook; overwrite function at FE8U:0x080AA1EC
-void sub_80AA1EC(struct SaveMenuProc* proc) {
-    proc->unk_29 = 0;
+void SaveMenu_ResetLcdFormDifficulty(struct SaveMenuProc * proc)
+{
+    proc->scroll_cnt = 0;
 
     SetupBackgrounds(gBgConfig_SaveMenu);
 
