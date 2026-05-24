@@ -13,12 +13,16 @@ ORG FreeSpace
 
 #define AnyClass 0x00
 
+ALIGN 4
+
 gMultiTransformManimList:
     ManimTransformEnt(Dragonstone, Manakete_2_F, Manakete, 0x089A8F74)
     ManimTransformEnt(Rapier, EirikaLord, Bael, 0x0859EEA0)
     ManimTransformEnt(Rapier, EirikaMasterLord, ElderBael, 0x0859EEA0)
     ManimTransformEnt(SteelLance, AnyClass, DracoZombie, 0x0859EEA0)
     ManimTransformEnt(-1, 0, 0, 0)
+
+ALIGN 4
 
 #include "MultiTransformManims.lyn.event"
 
