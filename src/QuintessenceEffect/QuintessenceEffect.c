@@ -221,8 +221,8 @@ void QuintessenceFx_Init_Main(struct QuintessenceFxProc * proc)
     SetBlendTargetB(0, 0, 0, 1, 0);
 
     ApplyPalette(Pal_QuintessenceFx, 5);
-    Decompress(Img_ChapterIntroFog, (void *)0x06004000);
-    TmApplyTsa_thm(gBG2TilemapBuffer, gUnknown_085A647C, 0x5200);
+    Decompress(Img_ChapterIntroFog, BG_CHR_ADDR(0x200));
+    TmApplyTsa_thm(gBG2TilemapBuffer, Tsa_PlayerRankFog, TILEREF(0x200, 5));
 
     EnableBgSync(BG2_SYNC_BIT | BG3_SYNC_BIT);
     SetBgOffset(BG_2, 0, 0);

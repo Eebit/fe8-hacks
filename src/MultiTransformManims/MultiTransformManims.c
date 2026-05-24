@@ -62,8 +62,8 @@ void MTM_TrySetSpecialClassSprite(int actorNum) {
             continue;
         }
 
-        MU_SetPaletteId(gManimSt.actor[actorNum].mu, BM_OBJPAL_BANIM_SPECIALMU + actorNum);
-        MU_SetSpecialSprite(gManimSt.actor[actorNum].mu, it->displayClassId, it->palette);
+        SetMuPal(gManimSt.actor[actorNum].mu, BM_OBJPAL_BANIM_SPECIALMU + actorNum);
+        SetMuSpecialSprite(gManimSt.actor[actorNum].mu, it->displayClassId, it->palette);
         return;
     }
 
