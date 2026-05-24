@@ -8,6 +8,8 @@
 #include "m4a.h"
 #include "soundwrapper.h"
 
+#include "constants/msg.h"
+
 #include "../../Text/TextDefinitions.h"
 
 void Guide_Init(ProcPtr);
@@ -80,8 +82,8 @@ const struct ProcCmd ProcScr_PrepScreenGuide[] = {
 // MAIN PREP MENU
 // ==================================
 
-// Autohook this function, we don't need it (vanilla function for calling chapter status screen from prep)
-void sub_808E79C(ProcPtr proc) {
+// Fully replace this function (FE8U:0x0808E79C); it's not used in vanilla
+void StartChapterStatusScreen_FromPrep(ProcPtr proc) {
     Proc_StartBlocking(ProcScr_PrepScreenGuide, proc);
     return;
 }
@@ -104,7 +106,7 @@ void PrepScreenGuide_AddExtraEntry(struct ProcAtMenu * proc) {
         color = TEXT_COLOR_SYSTEM_GRAY;
     }
 
-    SetPrepScreenMenuItem(PREP_MAINMENU_SAVE, PrepScreenMenu_OnSave, color, 0x579, 0);
+    SetPrepScreenMenuItem(PREP_MAINMENU_SAVE, PrepScreenMenu_OnSave, color, MSG_579, 0);
 
     color = TEXT_COLOR_SYSTEM_WHITE;
     if (IsGuideLocked()) {
@@ -123,20 +125,20 @@ void PrepScreenGuide_AddExtraEntry(struct ProcAtMenu * proc) {
 
 void PrepScreenGuide_MapMenu_OnGuide(struct ProcPrepSallyCursor * proc) {
     proc->unk_58 = 4;
-    Proc_Goto(proc, 55); // Take over the Merlinus intro cutscene in the Sallycursor proc
+    Proc_Goto(proc, 56); // Take over the unused Chapter Status section in the Sallycursor proc
     return;
 }
 
 // hook at 0x33696 (PrepScreenProc_StartMapMenu)
 void PrepScreenGuide_MapMenu_AddExtraEntry(struct ProcPrepSallyCursor * proc) {
     // Preserve what we've replaced
-    SetPrepScreenMenuItem(8, PrepMapMenu_OnOptions, 0, 0x592, 0x5BD);
+    SetPrepScreenMenuItem(8, PrepMapMenu_OnOptions, TEXT_COLOR_SYSTEM_WHITE, MSG_592, MSG_5BD);
 
     // 0x06E5 = vanilla Guide help text ID
     if (!IsGuideLocked()) {
-        SetPrepScreenMenuItem(4, PrepScreenGuide_MapMenu_OnGuide, TEXT_COLOR_SYSTEM_WHITE, Guide_PrepMenu_Text, 0x06E5);
+        SetPrepScreenMenuItem(4, PrepScreenGuide_MapMenu_OnGuide, TEXT_COLOR_SYSTEM_WHITE, Guide_PrepMenu_Text, MSG_6E5);
     } else {
-        SetPrepScreenMenuItem(4, PrepScreenGuide_MapMenu_OnGuide, TEXT_COLOR_SYSTEM_GRAY, Guide_PrepMenu_Text, 0x06E5);
+        SetPrepScreenMenuItem(4, PrepScreenGuide_MapMenu_OnGuide, TEXT_COLOR_SYSTEM_GRAY, Guide_PrepMenu_Text, MSG_6E5);
     }
 
     return;

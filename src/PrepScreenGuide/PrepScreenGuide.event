@@ -55,26 +55,11 @@ PUSH
         callHack_r1(PrepScreenGuide_MapMenu_AddExtraEntry|1)
         SHORT 0x46C0 // NOP
 
-    ORG 0x59E00C // Replaces the part of SALLYCURSOR proc where Merlinus would show up in FE7; nulled out in FE8
+    ORG 0x59DF84 // Replaces the part of SALLYCURSOR proc where the Chapter Status screen would be started, but it's unused in vanilla
     {
-        #define BMapDispSuspend            0x08030184
-        #define ClosePrepScreenMapMenu     0x0803334C
-        #define BMapDispResume             0x080301B8
-
-        PROC_CALL_ROUTINE(BMapDispSuspend|1)
-        PROC_CALL_ROUTINE(ClosePrepScreenMapMenu|1)
-
         PROC_CALL_ROUTINE(PrepScreenGuide_StartGuide|1)
-        PROC_YIELD
-
-        PROC_CALL_ROUTINE(BMapDispResume|1)
-
-        PROC_GOTO(62)
-
-        #undef BMapDispSuspend
-        #undef ClosePrepScreenMapMenu
-        #undef BMapDispResume
     }
+
 POP
 
 #endif /* PREP_SCREEN_GUIDE_INSTALLED */
